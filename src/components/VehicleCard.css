@@ -1,0 +1,251 @@
+.vehicle-card {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.vehicle-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.vehicle-card.locked {
+  opacity: 0.85;
+  border: 2px solid #667eea;
+}
+
+.vehicle-card.locked:hover {
+  transform: none;
+  cursor: not-allowed;
+}
+
+.card-image-container {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  background: #f0f0f0;
+  overflow: hidden;
+}
+
+.vehicle-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.discount-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.price-tag {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.card-content {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  flex: 1;
+}
+
+.vehicle-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.vehicle-name {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #333;
+  margin: 0;
+}
+
+.badges-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.badge.recommended {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.badge.discount {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.badge.electric,
+.badge.hybrid {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
+.badge.current {
+  background: #667eea;
+  color: white;
+}
+
+.badge-icon {
+  font-size: 0.9rem;
+}
+
+.vehicle-specs {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.spec-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.spec-label {
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.spec-value {
+  font-size: 1rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.vehicle-attributes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.attribute-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.attribute-icon {
+  color: #28a745;
+  font-weight: bold;
+}
+
+.pricing-section {
+  padding-top: 1rem;
+  border-top: 2px solid #e9ecef;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.original-price {
+  font-size: 0.9rem;
+  color: #999;
+  text-decoration: line-through;
+}
+
+.current-price {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.price-label {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.price-amount {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #667eea;
+}
+
+.total-price {
+  font-size: 0.95rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.upgrade-button {
+  margin-top: auto;
+  padding: 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.upgrade-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+.upgrade-button:active {
+  transform: translateY(0);
+}
+
+.vehicle-card.locked .upgrade-button {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .card-content {
+    padding: 1.25rem;
+  }
+
+  .vehicle-name {
+    font-size: 1.2rem;
+  }
+
+  .vehicle-specs {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
