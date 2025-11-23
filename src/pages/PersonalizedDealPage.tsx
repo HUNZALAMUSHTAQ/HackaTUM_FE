@@ -3,7 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { getAgenticSelectorRecords, getTaskStatus, getAvailableVehicles, AgenticSelectorRecord, Deal, TaskStatusResponse } from '../services/api'
 import { useApp } from '../context/AppContext'
 import VehicleCard from '../components/VehicleCard'
-import './PersonalizedDealPage.css'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { ArrowLeft, Unlock, Loader2, AlertCircle, Sparkles, Check, Lightbulb } from 'lucide-react'
 
 export default function PersonalizedDealPage() {
   const navigate = useNavigate()
@@ -33,11 +37,9 @@ export default function PersonalizedDealPage() {
       const taskStatus = await getTaskStatus(taskId)
       console.log('Task status:', taskStatus)
 
-      // Check if task state is SUCCESS
       if (taskStatus.state === 'SUCCESS' || taskStatus.state === 'SUCCESSFUL') {
         setStatusMessage('Fetching your personalized deals...')
         
-        // Extract agentic_selector_id from result
         const agenticSelectorId = taskStatus.result?.agentic_selector_id
         console.log('Agentic selector ID from task result:', agenticSelectorId)
         
@@ -52,11 +54,9 @@ export default function PersonalizedDealPage() {
           return
         }
         
-        // Fetch all records
         const allRecords = await getAgenticSelectorRecords(userId)
         console.log('All agentic selector records:', allRecords)
         
-        // Filter by agentic_selector_id
         const filteredRecord = allRecords.find(record => record.id === agenticSelectorId)
         console.log('Filtered record by ID:', filteredRecord)
         
@@ -74,16 +74,13 @@ export default function PersonalizedDealPage() {
         setSelectedRecord(filteredRecord)
         setRecords(allRecords)
         
-        // Find the vehicle from vehiclesData or fetch from API
         if (filteredRecord.vehicle_id) {
           let vehicle: Deal | null = null
           
-          // First try to find in existing vehiclesData
           if (vehiclesData?.deals) {
             vehicle = vehiclesData.deals.find((deal: Deal) => deal.vehicle.id === filteredRecord.vehicle_id) || null
           }
           
-          // If not found, fetch from booking API
           if (!vehicle) {
             const bookingId = bookingDetails?.id || localStorage.getItem('bookingId')
             if (bookingId) {
@@ -108,30 +105,25 @@ export default function PersonalizedDealPage() {
         
         setLoading(false)
         
-        // Clear polling interval
         if (pollingIntervalRef.current) {
           clearInterval(pollingIntervalRef.current)
           pollingIntervalRef.current = null
         }
         
-        // Remove task_id from localStorage
         localStorage.removeItem('agenticTaskId')
       } else if (taskStatus.state === 'FAILURE' || taskStatus.state === 'FAILED' || taskStatus.state === 'ERROR') {
         setError(taskStatus.error || taskStatus.status || 'Task failed to complete')
         setLoading(false)
         
-        // Clear polling interval
         if (pollingIntervalRef.current) {
           clearInterval(pollingIntervalRef.current)
           pollingIntervalRef.current = null
         }
       } else {
-        // Task is still processing (PENDING, STARTED, etc.)
         setStatusMessage(`Processing your preferences... (${taskStatus.status || taskStatus.state})`)
       }
     } catch (err: any) {
       console.error('Error polling task status:', err)
-      // Continue polling even if there's an error (might be temporary)
     }
   }
 
@@ -146,7 +138,6 @@ export default function PersonalizedDealPage() {
     const taskId = localStorage.getItem('agenticTaskId')
     
     if (!taskId) {
-      // No task ID, try to fetch records directly
       const fetchRecords = async () => {
         try {
           setLoading(true)
@@ -163,20 +154,16 @@ export default function PersonalizedDealPage() {
       return
     }
 
-    // Wait 3 seconds before starting to poll
     const initialDelay = setTimeout(() => {
       setStatusMessage('Checking task status...')
       
-      // Start polling immediately
       pollTaskStatus(taskId, userId)
       
-      // Then poll every 2 seconds
       pollingIntervalRef.current = setInterval(() => {
         pollTaskStatus(taskId, userId)
       }, 2000)
     }, 3000)
 
-    // Cleanup function
     return () => {
       clearTimeout(initialDelay)
       if (pollingIntervalRef.current) {
@@ -195,7 +182,6 @@ export default function PersonalizedDealPage() {
 
     try {
       setUnlocking(true)
-      // Navigate to best protection page - it will fetch the data there
       navigate('/best-protection')
     } catch (err: any) {
       console.error('Error navigating to unlock:', err)
@@ -207,72 +193,100 @@ export default function PersonalizedDealPage() {
 
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="spinner"></div>
-        <p>{statusMessage}</p>
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex flex-col items-center justify-center py-12 space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground text-center">{statusMessage}</p>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="error-container">
-        <h2>Error</h2>
-        <p>{error}</p>
-        <button onClick={() => navigate('/vehicles')} className="retry-button">
-          Go Back
-        </button>
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex flex-col items-center justify-center py-12 space-y-4">
+            <AlertCircle className="h-12 w-12 text-destructive" />
+            <h2 className="text-lg font-semibold">Error</h2>
+            <p className="text-sm text-muted-foreground text-center">{error}</p>
+            <Button variant="outline" size="sm" onClick={() => navigate('/vehicles')}>
+              Go Back
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   return (
-    <div className="personalized-deal-page">
-      <header className="deal-header">
-        <button className="back-button" onClick={() => navigate('/vehicles')}>
-          ← Back
-        </button>
-        <div className="header-content">
-          <h1>Your Personalized Deal</h1>
-          <p className="subtitle">AI-powered recommendation just for you</p>
-        </div>
-      </header>
-
-      <main className="deal-main">
-        {!selectedRecord ? (
-          <div className="no-deals-message">
-            <div className="no-deals-icon">🎯</div>
-            <h2>No personalized deal available yet</h2>
-            <p>We're still processing your preferences. Please check back soon!</p>
-            <button onClick={() => navigate('/vehicles')} className="retry-button">
-              Go Back to Vehicles
-            </button>
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10">
+      <div className="bg-gradient-to-r from-primary to-secondary text-primary-foreground">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-primary-foreground hover:bg-primary-foreground/20"
+              onClick={() => navigate('/vehicles')}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+            <div className="flex-1 text-center">
+              <h1 className="text-xl font-bold flex items-center justify-center gap-2">
+                <Sparkles className="h-5 w-5" />
+                Your Personalized Deal
+              </h1>
+              <p className="text-xs opacity-90 mt-1">AI-powered recommendation just for you</p>
+            </div>
           </div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-6 max-w-6xl">
+        {!selectedRecord ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12 space-y-4">
+              <div className="text-4xl">🎯</div>
+              <h2 className="text-lg font-semibold">No personalized deal available yet</h2>
+              <p className="text-sm text-muted-foreground text-center">
+                We're still processing your preferences. Please check back soon!
+              </p>
+              <Button variant="outline" size="sm" onClick={() => navigate('/vehicles')}>
+                Go Back to Vehicles
+              </Button>
+            </CardContent>
+          </Card>
         ) : (
           <>
             {selectedVehicle ? (
               <>
-                <div className="unlock-section">
-                  <button
-                    className="unlock-car-button"
+                <div className="flex justify-center mb-6">
+                  <Button
+                    size="lg"
+                    className="h-10 gap-2"
                     onClick={handleUnlockCar}
                     disabled={unlocking}
                   >
                     {unlocking ? (
                       <>
-                        <span className="button-spinner"></span>
+                        <Loader2 className="h-4 w-4 animate-spin" />
                         Unlocking...
                       </>
                     ) : (
                       <>
-                        🔓 Unlock the Car
+                        <Unlock className="h-4 w-4" />
+                        Unlock the Car
                       </>
                     )}
-                  </button>
+                  </Button>
                 </div>
 
-                <div className="personalized-content">
-                  <div className="vehicle-section">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div>
                     <VehicleCard
                       deal={selectedVehicle}
                       isLocked={false}
@@ -280,53 +294,73 @@ export default function PersonalizedDealPage() {
                     />
                   </div>
 
-                  <div className="recommendation-section">
-                    <div className="recommendation-card">
-                      <h2 className="recommendation-title">Why This Vehicle?</h2>
-                      <p className="recommendation-reason">{selectedRecord.REASON}</p>
-                    </div>
+                  <div className="space-y-4">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Sparkles className="h-4 w-4" />
+                          Why This Vehicle?
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{selectedRecord.REASON}</p>
+                      </CardContent>
+                    </Card>
 
                     {selectedRecord.FEATURES_BASED_ON_PREFERENCES && selectedRecord.FEATURES_BASED_ON_PREFERENCES.length > 0 && (
-                      <div className="features-card">
-                        <h3 className="features-title">Key Features</h3>
-                        <ul className="features-list">
-                          {selectedRecord.FEATURES_BASED_ON_PREFERENCES.map((feature, index) => (
-                            <li key={index} className="feature-item">
-                              <span className="feature-icon">✓</span>
-                              <span>{feature}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">Key Features</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <ul className="space-y-2">
+                            {selectedRecord.FEATURES_BASED_ON_PREFERENCES.map((feature, index) => (
+                              <li key={index} className="flex items-start gap-2 text-sm">
+                                <Check className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                                <span className="text-muted-foreground">{feature}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </CardContent>
+                      </Card>
                     )}
 
                     {selectedRecord.PERSUASIVE_MESSAGES_POINTS && selectedRecord.PERSUASIVE_MESSAGES_POINTS.length > 0 && (
-                      <div className="messages-card">
-                        <h3 className="messages-title">Why You'll Love It</h3>
-                        <ul className="messages-list">
-                          {selectedRecord.PERSUASIVE_MESSAGES_POINTS.map((message, index) => (
-                            <li key={index} className="message-item">
-                              <span className="message-icon">💡</span>
-                              <span>{message}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <Lightbulb className="h-4 w-4" />
+                            Why You'll Love It
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <ul className="space-y-2">
+                            {selectedRecord.PERSUASIVE_MESSAGES_POINTS.map((message, index) => (
+                              <li key={index} className="flex items-start gap-2 text-sm">
+                                <Lightbulb className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                                <span className="text-muted-foreground">{message}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </CardContent>
+                      </Card>
                     )}
                   </div>
                 </div>
-
               </>
             ) : (
-              <div className="no-vehicle-message">
-                <p>Vehicle information is being loaded...</p>
-                <p className="vehicle-id">Vehicle ID: {selectedRecord.vehicle_id}</p>
-              </div>
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12 space-y-2">
+                  <p className="text-sm text-muted-foreground">Vehicle information is being loaded...</p>
+                  <Badge variant="outline" className="text-xs">
+                    Vehicle ID: {selectedRecord.vehicle_id}
+                  </Badge>
+                </CardContent>
+              </Card>
             )}
           </>
         )}
-      </main>
+      </div>
     </div>
   )
 }
-

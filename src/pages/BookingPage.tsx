@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createBooking, getBookingDetails, getAvailableVehicles } from '../services/api'
 import { useApp } from '../context/AppContext'
-import '../components/BookingScreen.css'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Loader2, Car, AlertCircle } from 'lucide-react'
 
 export default function BookingPage() {
   const navigate = useNavigate()
@@ -19,7 +21,6 @@ export default function BookingPage() {
       const details = await getBookingDetails(booking.id)
       setBookingDetails(details)
       
-      // Save booking ID to localStorage
       localStorage.setItem('bookingId', booking.id)
       localStorage.setItem('bookingDetails', JSON.stringify(details))
       
@@ -35,63 +36,56 @@ export default function BookingPage() {
   }
 
   return (
-    <div className="booking-screen">
-      <div className="booking-container">
-        <div className="booking-header">
-          <h1>{user?.name ? `Welcome, ${user.name}!` : 'Welcome to Sixt'}</h1>
-          <p className="subtitle">Let's get your booking started</p>
-        </div>
-
-        <div className="booking-content">
-          <div className="booking-icon">
-            <svg
-              width="120"
-              height="120"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5H6.5C5.84 5 5.28 5.42 5.08 6.01L3 12V20C3 20.55 3.45 21 4 21H5C5.55 21 6 20.55 6 20V19H18V20C18 20.55 18.45 21 19 21H20C20.55 21 21 20.55 21 20V12L18.92 6.01ZM6.5 6.5H17.5L19.11 11H4.89L6.5 6.5ZM6.5 16C5.67 16 5 15.33 5 14.5S5.67 13 6.5 13 8 13.67 8 14.5 7.33 16 6.5 16ZM17.5 16C16.67 16 16 15.33 16 14.5S16.67 13 17.5 13 19 13.67 19 14.5 18.33 16 17.5 16Z"
-                fill="currentColor"
-              />
-            </svg>
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1 text-center pb-4">
+          <CardTitle className="text-xl">
+            {user?.name ? `Welcome, ${user.name}!` : 'Welcome to Sixt'}
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Let's get your booking started
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex justify-center">
+            <div className="p-4 rounded-full bg-primary/10">
+              <Car className="h-12 w-12 text-primary" />
+            </div>
           </div>
 
-          <div className="booking-info">
-            <h2>Create Your Booking</h2>
-            <p>
+          <div className="text-center space-y-2">
+            <h2 className="text-base font-semibold">Create Your Booking</h2>
+            <p className="text-xs text-muted-foreground">
               Click the button below to create a new booking and explore our available vehicles.
             </p>
           </div>
 
           {error && (
-            <div className="error-message">
-              <span className="error-icon">⚠️</span>
+            <div className="flex items-center gap-2 p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
+              <AlertCircle className="h-4 w-4" />
               <span>{error}</span>
             </div>
           )}
 
-          <button
-            className="create-booking-button"
+          <Button
+            className="w-full h-9"
             onClick={handleCreateBooking}
             disabled={isLoading}
           >
             {isLoading ? (
               <>
-                <span className="button-spinner"></span>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Creating Booking...
               </>
             ) : (
               <>
-                <span className="button-icon">🚗</span>
+                <Car className="mr-2 h-4 w-4" />
                 Create Booking
               </>
             )}
-          </button>
-        </div>
-      </div>
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   )
 }
-

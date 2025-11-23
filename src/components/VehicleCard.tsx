@@ -1,6 +1,10 @@
 import { useNavigate } from 'react-router-dom'
 import { Deal } from '../services/api'
-import './VehicleCard.css'
+import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { Star, Zap, Battery, Lock, Check } from 'lucide-react'
 
 interface VehicleCardProps {
   deal: Deal
@@ -14,11 +18,11 @@ export default function VehicleCard({ deal, isLocked, showUpgradeButton }: Vehic
 
   const getBadges = () => {
     const badges = []
-    if (vehicle.isRecommended) badges.push({ text: 'Recommended', icon: '⭐', className: 'recommended' })
-    if (vehicle.isExcitingDiscount) badges.push({ text: 'Exciting Discount', icon: '⚡', className: 'discount' })
-    if (vehicle.fuelType === 'Electric') badges.push({ text: 'Electric', icon: '🔋', className: 'electric' })
-    if (vehicle.fuelType === 'Hybrid') badges.push({ text: 'Hybrid', icon: '🔋', className: 'hybrid' })
-    if (isLocked) badges.push({ text: 'Your Current Booking', icon: '🔒', className: 'current' })
+    if (vehicle.isRecommended) badges.push({ text: 'Recommended', icon: Star, variant: 'default' as const })
+    if (vehicle.isExcitingDiscount) badges.push({ text: 'Exciting Discount', icon: Zap, variant: 'secondary' as const })
+    if (vehicle.fuelType === 'Electric') badges.push({ text: 'Electric', icon: Battery, variant: 'outline' as const })
+    if (vehicle.fuelType === 'Hybrid') badges.push({ text: 'Hybrid', icon: Battery, variant: 'outline' as const })
+    if (isLocked) badges.push({ text: 'Your Current Booking', icon: Lock, variant: 'default' as const })
     return badges
   }
 
@@ -38,109 +42,117 @@ export default function VehicleCard({ deal, isLocked, showUpgradeButton }: Vehic
   }
 
   return (
-    <div className={`vehicle-card ${isLocked ? 'locked' : ''}`}>
-      <div className="card-image-container">
+    <Card className={`overflow-hidden ${isLocked ? 'border-primary opacity-90' : 'hover:shadow-lg transition-shadow'}`}>
+      <div className="relative h-40 bg-muted overflow-hidden">
         <img 
           src={vehicle.images[0] || '/placeholder-car.png'} 
           alt={`${vehicle.brand} ${vehicle.model}`}
-          className="vehicle-image"
+          className="w-full h-full object-cover"
           onError={(e) => {
             (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x200?text=No+Image'
           }}
         />
         {pricing.discountPercentage > 0 && (
-          <div className="discount-badge">
+          <Badge className="absolute top-2 right-2 bg-destructive text-destructive-foreground text-xs">
             {pricing.discountPercentage}% OFF
-          </div>
+          </Badge>
         )}
         {deal.priceTag && (
-          <div className="price-tag">{deal.priceTag}</div>
+          <Badge variant="outline" className="absolute bottom-2 left-2 bg-background/90 text-xs">
+            {deal.priceTag}
+          </Badge>
         )}
       </div>
 
-      <div className="card-content">
-        <div className="vehicle-header">
-          <h3 className="vehicle-name">
+      <CardContent className="p-4 space-y-3">
+        <div className="space-y-2">
+          <h3 className="text-base font-bold leading-tight">
             {vehicle.brand} {vehicle.model}
           </h3>
-          <div className="badges-container">
-            {getBadges().map((badge, idx) => (
-              <span key={idx} className={`badge ${badge.className}`}>
-                <span className="badge-icon">{badge.icon}</span>
-                <span className="badge-text">{badge.text}</span>
-              </span>
-            ))}
+          <div className="flex flex-wrap gap-1.5">
+            {getBadges().map((badge, idx) => {
+              const Icon = badge.icon
+              return (
+                <Badge key={idx} variant={badge.variant} className="text-xs py-0.5">
+                  <Icon className="h-3 w-3 mr-1" />
+                  {badge.text}
+                </Badge>
+              )
+            })}
           </div>
         </div>
 
-        <div className="vehicle-specs">
-          <div className="spec-item">
-            <span className="spec-label">Fuel:</span>
-            <span className="spec-value">{vehicle.fuelType}</span>
+        <div className="grid grid-cols-2 gap-2 p-2 bg-muted rounded-md text-xs">
+          <div>
+            <span className="text-muted-foreground uppercase text-[10px] tracking-wide">Fuel</span>
+            <p className="font-semibold">{vehicle.fuelType || 'N/A'}</p>
           </div>
-          <div className="spec-item">
-            <span className="spec-label">Transmission:</span>
-            <span className="spec-value">{vehicle.transmissionType}</span>
+          <div>
+            <span className="text-muted-foreground uppercase text-[10px] tracking-wide">Transmission</span>
+            <p className="font-semibold">{vehicle.transmissionType}</p>
           </div>
-          <div className="spec-item">
-            <span className="spec-label">Seats:</span>
-            <span className="spec-value">{vehicle.passengersCount}</span>
+          <div>
+            <span className="text-muted-foreground uppercase text-[10px] tracking-wide">Seats</span>
+            <p className="font-semibold">{vehicle.passengersCount}</p>
           </div>
           {vehicle.bagsCount > 0 && (
-            <div className="spec-item">
-              <span className="spec-label">Bags:</span>
-              <span className="spec-value">{vehicle.bagsCount}</span>
+            <div>
+              <span className="text-muted-foreground uppercase text-[10px] tracking-wide">Bags</span>
+              <p className="font-semibold">{vehicle.bagsCount}</p>
             </div>
           )}
         </div>
 
-        <div className="vehicle-attributes">
-          {vehicle.attributes
-            .filter(attr => attr.attributeType === 'UPSELL_ATTRIBUTE')
-            .slice(0, 3)
-            .map((attr, idx) => (
-              <div key={idx} className="attribute-item">
-                <span className="attribute-icon">✓</span>
-                <span className="attribute-text">{attr.title}</span>
-              </div>
-            ))}
-        </div>
+        {vehicle.attributes.filter(attr => attr.attributeType === 'UPSELL_ATTRIBUTE').length > 0 && (
+          <div className="space-y-1">
+            {vehicle.attributes
+              .filter(attr => attr.attributeType === 'UPSELL_ATTRIBUTE')
+              .slice(0, 3)
+              .map((attr, idx) => (
+                <div key={idx} className="flex items-center gap-2 text-xs">
+                  <Check className="h-3 w-3 text-primary flex-shrink-0" />
+                  <span className="text-muted-foreground">{attr.title}</span>
+                </div>
+              ))}
+          </div>
+        )}
 
-        <div className="pricing-section">
+        <Separator />
+
+        <div className="space-y-1.5">
           {pricing.listPrice && pricing.listPrice.amount > pricing.displayPrice.amount && (
-            <div className="original-price">
+            <p className="text-xs text-muted-foreground line-through">
               {pricing.listPrice.prefix}
               {formatPrice(pricing.listPrice.amount, pricing.listPrice.currency)}
               {pricing.listPrice.suffix}
-            </div>
+            </p>
           )}
-          <div className="current-price">
-            <span className="price-label">Price:</span>
-            <span className="price-amount">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-xs text-muted-foreground">Price:</span>
+            <span className="text-lg font-bold text-primary">
               {pricing.displayPrice.prefix}
               {formatPrice(pricing.displayPrice.amount, pricing.displayPrice.currency)}
               {pricing.displayPrice.suffix}
             </span>
           </div>
-          <div className="total-price">
-            {pricing.totalPrice.prefix}
+          <p className="text-xs text-muted-foreground">
+            Total: {pricing.totalPrice.prefix}
             {formatPrice(pricing.totalPrice.amount, pricing.totalPrice.currency)}
             {pricing.totalPrice.suffix}
-          </div>
+          </p>
         </div>
 
         {showUpgradeButton && !isLocked && (
-          <button 
-            className="upgrade-button"
+          <Button 
+            className="w-full h-8 text-xs"
             onClick={handleUpgrade}
           >
             Upgrade for {pricing.displayPrice.prefix}
             {formatPrice(pricing.displayPrice.amount, pricing.displayPrice.currency)}
             {pricing.displayPrice.suffix}
-          </button>
+          </Button>
         )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }
-

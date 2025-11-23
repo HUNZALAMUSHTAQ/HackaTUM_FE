@@ -2,7 +2,12 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createUser, createUserPreference, getPreferenceById } from '../services/api'
 import { useApp } from '../context/AppContext'
-import '../components/UserCreationScreen.css'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select } from '@/components/ui/select'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Loader2, Check, AlertCircle, Clock } from 'lucide-react'
 
 export default function UserCreationPage() {
   const navigate = useNavigate()
@@ -37,7 +42,6 @@ export default function UserCreationPage() {
       console.log('Questions count:', pref.questions?.length || 0)
       setPreference(pref)
       
-      // Check if status is completed and has questions
       if (pref.status === 'completed') {
         console.log('Preference status is completed')
         if (pref.questions && pref.questions.length > 0) {
@@ -64,10 +68,9 @@ export default function UserCreationPage() {
         }
       } 
       
-      // If status is generating or pending, poll again
       if (pref.status === 'generating' || pref.status === 'pending') {
         console.log(`Preference status is ${pref.status}, polling again... (retry ${retryCount + 1}/15)`)
-        if (retryCount < 15) { // Increased retries
+        if (retryCount < 15) {
           setTimeout(() => {
             checkPreferenceStatus(prefId, retryCount + 1)
           }, 2000)
@@ -79,7 +82,6 @@ export default function UserCreationPage() {
         return
       }
       
-      // Default: navigate to booking
       console.log('Default case: navigating to booking')
       setIsCheckingPreference(false)
       navigate('/booking')
@@ -120,7 +122,6 @@ export default function UserCreationPage() {
       })
       
       setUser(createdUser)
-      // Save user ID to localStorage
       localStorage.setItem('userId', createdUser.id.toString())
       localStorage.setItem('userData', JSON.stringify(createdUser))
       
@@ -128,7 +129,6 @@ export default function UserCreationPage() {
       console.log('Preference created:', preferenceResponse)
       setPreferenceId(preferenceResponse.id)
       
-      // Start checking preference status
       await checkPreferenceStatus(preferenceResponse.id)
     } catch (err: any) {
       setError(err.message || 'Failed to create user')
@@ -138,185 +138,206 @@ export default function UserCreationPage() {
   }
 
   return (
-    <div className="user-creation-screen">
-      <div className="user-creation-container">
-        <div className="user-creation-header">
-          <h1>Create Your Profile</h1>
-          <p className="subtitle">Tell us about yourself to get personalized recommendations</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="user-form">
-          <div className="form-section">
-            <h3>Basic Information</h3>
-            
-            <div className="form-group">
-              <label htmlFor="name">Full Name <span className="required">*</span></label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                placeholder="John Doe"
-                required
-                disabled={isLoading}
-              />
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="age">Age <span className="required">*</span></label>
-                <input
-                  type="number"
-                  id="age"
-                  name="age"
-                  value={formData.age}
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 flex items-center justify-center p-4">
+      <Card className="w-full max-w-2xl">
+        <CardHeader className="space-y-1 pb-4">
+          <CardTitle className="text-2xl">Create Your Profile</CardTitle>
+          <CardDescription className="text-xs">
+            Tell us about yourself to get personalized recommendations
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-4">
+              <div className="border-b pb-3">
+                <h3 className="text-sm font-semibold">Basic Information</h3>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-xs">
+                  Full Name <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="name"
+                  name="name"
+                  value={formData.name}
                   onChange={handleChange}
-                  placeholder="30"
-                  min="0"
+                  placeholder="John Doe"
                   required
                   disabled={isLoading}
+                  className="h-8 text-sm"
                 />
               </div>
 
-              <div className="form-group">
-                <label htmlFor="gender">Gender <span className="required">*</span></label>
-                <select
-                  id="gender"
-                  name="gender"
-                  value={formData.gender}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="age" className="text-xs">
+                    Age <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    type="number"
+                    id="age"
+                    name="age"
+                    value={formData.age}
+                    onChange={handleChange}
+                    placeholder="30"
+                    min="0"
+                    required
+                    disabled={isLoading}
+                    className="h-8 text-sm"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="gender" className="text-xs">
+                    Gender <span className="text-destructive">*</span>
+                  </Label>
+                  <Select
+                    id="gender"
+                    name="gender"
+                    value={formData.gender}
+                    onChange={handleChange}
+                    required
+                    disabled={isLoading}
+                    className="h-8 text-sm"
+                  >
+                    <option value="">Select gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="location" className="text-xs">
+                  Location <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  type="text"
+                  id="location"
+                  name="location"
+                  value={formData.location}
                   onChange={handleChange}
+                  placeholder="Munich"
                   required
                   disabled={isLoading}
-                >
-                  <option value="">Select gender</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                  <option value="Prefer not to say">Prefer not to say</option>
-                </select>
+                  className="h-8 text-sm"
+                />
               </div>
             </div>
 
-            <div className="form-group">
-              <label htmlFor="location">Location <span className="required">*</span></label>
-              <input
-                type="text"
-                id="location"
-                name="location"
-                value={formData.location}
-                onChange={handleChange}
-                placeholder="Munich"
-                required
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-
-          <div className="form-section">
-            <h3>Preferences (Optional)</h3>
-            
-            <div className="form-group">
-              <label htmlFor="driving_style">Driving Style</label>
-              <select
-                id="driving_style"
-                name="driving_style"
-                value={formData.driving_style}
-                onChange={handleChange}
-                disabled={isLoading}
-              >
-                <option value="">Select driving style</option>
-                <option value="sporty">Sporty</option>
-                <option value="relaxed">Relaxed</option>
-                <option value="balanced">Balanced</option>
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="fuel_preference">Fuel Preference</label>
-              <select
-                id="fuel_preference"
-                name="fuel_preference"
-                value={formData.fuel_preference}
-                onChange={handleChange}
-                disabled={isLoading}
-              >
-                <option value="">Select fuel preference</option>
-                <option value="petrol">Petrol</option>
-                <option value="hybrid">Hybrid</option>
-                <option value="electric">Electric</option>
-              </select>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="budget_sensitivity">Budget Sensitivity</label>
-                <select
-                  id="budget_sensitivity"
-                  name="budget_sensitivity"
-                  value={formData.budget_sensitivity}
+            <div className="space-y-4">
+              <div className="border-b pb-3">
+                <h3 className="text-sm font-semibold">Preferences (Optional)</h3>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="driving_style" className="text-xs">Driving Style</Label>
+                <Select
+                  id="driving_style"
+                  name="driving_style"
+                  value={formData.driving_style}
                   onChange={handleChange}
                   disabled={isLoading}
+                  className="h-8 text-sm"
                 >
-                  <option value="">Select sensitivity</option>
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                </select>
+                  <option value="">Select driving style</option>
+                  <option value="sporty">Sporty</option>
+                  <option value="relaxed">Relaxed</option>
+                  <option value="balanced">Balanced</option>
+                </Select>
               </div>
 
-              <div className="form-group">
-                <label htmlFor="risk_tolerance">Risk Tolerance</label>
-                <select
-                  id="risk_tolerance"
-                  name="risk_tolerance"
-                  value={formData.risk_tolerance}
+              <div className="space-y-2">
+                <Label htmlFor="fuel_preference" className="text-xs">Fuel Preference</Label>
+                <Select
+                  id="fuel_preference"
+                  name="fuel_preference"
+                  value={formData.fuel_preference}
                   onChange={handleChange}
                   disabled={isLoading}
+                  className="h-8 text-sm"
                 >
-                  <option value="">Select tolerance</option>
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                </select>
+                  <option value="">Select fuel preference</option>
+                  <option value="petrol">Petrol</option>
+                  <option value="hybrid">Hybrid</option>
+                  <option value="electric">Electric</option>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="budget_sensitivity" className="text-xs">Budget Sensitivity</Label>
+                  <Select
+                    id="budget_sensitivity"
+                    name="budget_sensitivity"
+                    value={formData.budget_sensitivity}
+                    onChange={handleChange}
+                    disabled={isLoading}
+                    className="h-8 text-sm"
+                  >
+                    <option value="">Select sensitivity</option>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="risk_tolerance" className="text-xs">Risk Tolerance</Label>
+                  <Select
+                    id="risk_tolerance"
+                    name="risk_tolerance"
+                    value={formData.risk_tolerance}
+                    onChange={handleChange}
+                    disabled={isLoading}
+                    className="h-8 text-sm"
+                  >
+                    <option value="">Select tolerance</option>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </Select>
+                </div>
               </div>
             </div>
-          </div>
 
-          {error && (
-            <div className="error-message">
-              <span className="error-icon">⚠️</span>
-              <span>{error}</span>
-            </div>
-          )}
-
-          {isCheckingPreference && (
-            <div className="info-message">
-              <span className="info-icon">⏳</span>
-              <span>Checking for questions...</span>
-            </div>
-          )}
-
-          <button
-            type="submit"
-            className="create-user-button"
-            disabled={isLoading || isCheckingPreference}
-          >
-            {isLoading || isCheckingPreference ? (
-              <>
-                <span className="button-spinner"></span>
-                {isLoading ? 'Creating Profile...' : 'Checking Preferences...'}
-              </>
-            ) : (
-              <>
-                <span className="button-icon">✓</span>
-                Create Profile
-              </>
+            {error && (
+              <div className="flex items-center gap-2 p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
+                <AlertCircle className="h-4 w-4" />
+                <span>{error}</span>
+              </div>
             )}
-          </button>
-        </form>
-      </div>
+
+            {isCheckingPreference && (
+              <div className="flex items-center gap-2 p-3 text-sm text-primary bg-primary/10 border border-primary/20 rounded-md">
+                <Clock className="h-4 w-4" />
+                <span>Checking for questions...</span>
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              className="w-full h-9"
+              disabled={isLoading || isCheckingPreference}
+            >
+              {isLoading || isCheckingPreference ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {isLoading ? 'Creating Profile...' : 'Checking Preferences...'}
+                </>
+              ) : (
+                <>
+                  <Check className="mr-2 h-4 w-4" />
+                  Create Profile
+                </>
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   )
 }
-

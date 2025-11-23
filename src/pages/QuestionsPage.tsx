@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getPreferenceById, updateQuestionAnswer } from '../services/api'
 import { useApp } from '../context/AppContext'
-import '../components/QuestionScreen.css'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { Loader2, CheckCircle, AlertCircle } from 'lucide-react'
 
 export default function QuestionsPage() {
   const navigate = useNavigate()
@@ -32,27 +34,27 @@ export default function QuestionsPage() {
 
   if (!preference) {
     return (
-      <div className="question-screen">
-        <div className="question-container">
-          <div className="loading-container">
-            <div className="spinner"></div>
-            <p>Loading questions...</p>
-          </div>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 flex items-center justify-center p-4">
+        <Card className="w-full max-w-lg">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+            <p className="text-sm text-muted-foreground">Loading questions...</p>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   if (!preference.questions || preference.questions.length === 0) {
     return (
-      <div className="question-screen">
-        <div className="question-container">
-          <div className="completion-message">
-            <div className="completion-icon">✓</div>
-            <h2>No questions available</h2>
-            <p>Redirecting to booking...</p>
-          </div>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 flex items-center justify-center p-4">
+        <Card className="w-full max-w-lg">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <CheckCircle className="h-12 w-12 text-primary mb-4" />
+            <h2 className="text-lg font-semibold mb-2">No questions available</h2>
+            <p className="text-sm text-muted-foreground">Redirecting to booking...</p>
+          </CardContent>
+        </Card>
       </div>
     )
   }
@@ -85,17 +87,15 @@ export default function QuestionsPage() {
   }, [questions, currentQuestionIndex, totalQuestions, navigate])
 
   const handleAnswerSelect = (answer: string) => {
-    // Prevent action if already submitting
     if (isSubmitting) {
       return
     }
 
     const now = Date.now()
-    const recentClicks = clickTimestamps.filter(ts => now - ts < 1000) // Clicks within last 1 second
+    const recentClicks = clickTimestamps.filter(ts => now - ts < 1000)
     const newClicks = [...recentClicks, now]
     setClickTimestamps(newClicks)
     
-    // If 2 or more clicks within 1 second, mark as frustrated
     const shouldMarkFrustrated = newClicks.length >= 2
     if (shouldMarkFrustrated) {
       console.log('Rapid clicks detected, marking as frustrated')
@@ -105,7 +105,6 @@ export default function QuestionsPage() {
     setSelectedAnswer(answer)
     setError(null)
     
-    // Auto-submit after a short delay to show selection
     setTimeout(() => {
       handleSubmit(answer, shouldMarkFrustrated)
     }, 300)
@@ -123,7 +122,6 @@ export default function QuestionsPage() {
       return
     }
 
-    // Prevent double submission
     if (isSubmitting) {
       return
     }
@@ -142,19 +140,17 @@ export default function QuestionsPage() {
       await updateQuestionAnswer(
         currentQuestion.id, 
         answerToSubmit,
-        undefined, // answerScore
-        undefined, // importance
+        undefined,
+        undefined,
         shouldMarkFrustrated
       )
       console.log('Answer submitted successfully')
       
-      // Refresh preference to get updated questions
       if (preferenceId) {
         const updatedPref = await getPreferenceById(preferenceId)
         console.log('Updated preference:', updatedPref)
         setPreference(updatedPref)
         
-        // Check if all questions are now answered
         if (updatedPref.questions) {
           const allAnswered = updatedPref.questions.every((q: any) => q.answer !== null)
           console.log('All questions answered:', allAnswered)
@@ -169,12 +165,10 @@ export default function QuestionsPage() {
         }
       }
       
-      // Reset frustration state for next question
       setIsFrustrated(false)
       setClickTimestamps([])
       setSelectedAnswer('')
       
-      // Find next unanswered question
       if (preference && preference.questions) {
         const nextUnansweredIndex = preference.questions.findIndex((q: any, idx: number) => 
           idx > currentQuestionIndex && q.answer === null
@@ -209,20 +203,17 @@ export default function QuestionsPage() {
         frustrated: true 
       })
       
-      // Mark current question as frustrated and skip
       await updateQuestionAnswer(
         currentQuestion.id, 
-        '', // No answer
-        undefined, // answerScore
-        undefined, // importance
-        true // frustrated
+        '',
+        undefined,
+        undefined,
+        true
       )
       
-      // Navigate to booking screen
       navigate('/booking')
     } catch (err: any) {
       console.error('Error skipping question:', err)
-      // Even if error, navigate to booking
       navigate('/booking')
     } finally {
       setIsSubmitting(false)
@@ -231,80 +222,86 @@ export default function QuestionsPage() {
 
   if (!currentQuestion) {
     return (
-      <div className="question-screen">
-        <div className="question-container">
-          <div className="completion-message">
-            <div className="completion-icon">✓</div>
-            <h2>All questions completed!</h2>
-            <p>Preparing your personalized recommendations...</p>
-          </div>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 flex items-center justify-center p-4">
+        <Card className="w-full max-w-lg">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <CheckCircle className="h-12 w-12 text-primary mb-4" />
+            <h2 className="text-lg font-semibold mb-2">All questions completed!</h2>
+            <p className="text-sm text-muted-foreground">Preparing your personalized recommendations...</p>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   return (
-    <div className="question-screen">
-      <div className="question-container">
-        <div className="question-header">
-          <div className="progress-bar">
-            <div className="progress-fill" style={{ width: `${progress}%` }}></div>
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 flex items-center justify-center p-4">
+      <Card className="w-full max-w-lg">
+        <CardHeader className="space-y-3 pb-4">
+          <div className="space-y-2">
+            <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-primary transition-all duration-300 rounded-full"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground text-center">
+              Question {effectiveIndex + 1} of {totalQuestions}
+            </p>
           </div>
-          <div className="question-counter">
-            Question {effectiveIndex + 1} of {totalQuestions}
-          </div>
-        </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-4">
+            <div className="text-center">
+              <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">
+                {currentQuestion.category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+              </p>
+              <h2 className="text-lg font-semibold leading-tight">{currentQuestion.question}</h2>
+            </div>
 
-        <div className="question-content">
-          <div className="question-category">
-            {currentQuestion.category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-          </div>
-          
-          <h2 className="question-text">{currentQuestion.question}</h2>
-
-          <div className="options-container">
-            {currentQuestion.options && currentQuestion.options.length > 0 ? (
-              currentQuestion.options.map((option, index) => (
-                <button
-                  key={index}
-                  className={`option-button ${selectedAnswer === option ? 'selected' : ''} ${isSubmitting ? 'submitting' : ''}`}
-                  onClick={() => handleAnswerSelect(option)}
-                  disabled={isSubmitting}
-                >
-                  {option}
-                </button>
-              ))
-            ) : (
-              <div className="no-options">No options available for this question</div>
-            )}
+            <div className="space-y-2">
+              {currentQuestion.options && currentQuestion.options.length > 0 ? (
+                currentQuestion.options.map((option, index) => (
+                  <Button
+                    key={index}
+                    variant={selectedAnswer === option ? "default" : "outline"}
+                    className="w-full h-9 justify-start text-sm"
+                    onClick={() => handleAnswerSelect(option)}
+                    disabled={isSubmitting}
+                  >
+                    {option}
+                  </Button>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">No options available for this question</p>
+              )}
+            </div>
           </div>
 
           {error && (
-            <div className="error-message">
-              <span className="error-icon">⚠️</span>
+            <div className="flex items-center gap-2 p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
+              <AlertCircle className="h-4 w-4" />
               <span>{error}</span>
             </div>
           )}
 
           {isSubmitting && (
-            <div className="submitting-indicator">
-              <span className="button-spinner"></span>
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
               <span>Submitting...</span>
             </div>
           )}
 
-          <div className="action-buttons">
-            <button
-              className="skip-button"
-              onClick={handleSkip}
-              disabled={isSubmitting}
-            >
-              Skip Questions
-            </button>
-          </div>
-        </div>
-      </div>
+          <Button
+            variant="ghost"
+            className="w-full h-8 text-xs"
+            onClick={handleSkip}
+            disabled={isSubmitting}
+          >
+            Skip Questions
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   )
 }
-

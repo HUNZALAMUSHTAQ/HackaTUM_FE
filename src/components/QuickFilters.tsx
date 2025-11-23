@@ -1,4 +1,6 @@
-import './QuickFilters.css'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Star, Zap, Sparkles, Battery } from 'lucide-react'
 
 interface QuickFilter {
   key: string
@@ -14,32 +16,34 @@ interface QuickFiltersProps {
 
 export default function QuickFilters({ filters, activeFilters, onFilterToggle }: QuickFiltersProps) {
   const getFilterIcon = (key: string) => {
-    if (key.includes('RECOMMENDED')) return '⭐'
-    if (key.includes('EXCITING_DISCOUNTS')) return '⚡'
-    if (key.includes('NEW_CAR')) return '🆕'
-    if (key.includes('ELECTRIC')) return '🔋'
-    return ''
+    if (key.includes('RECOMMENDED')) return Star
+    if (key.includes('EXCITING_DISCOUNTS')) return Zap
+    if (key.includes('NEW_CAR')) return Sparkles
+    if (key.includes('ELECTRIC')) return Battery
+    return null
   }
 
   return (
-    <div className="quick-filters">
-      <h3 className="filters-title">Quick Filters</h3>
-      <div className="filters-container">
+    <div className="space-y-2">
+      <h3 className="text-sm font-semibold">Quick Filters</h3>
+      <div className="flex flex-wrap gap-2">
         {filters.map((filter) => {
           const isActive = activeFilters.has(filter.key)
+          const Icon = getFilterIcon(filter.key)
           return (
-            <button
+            <Button
               key={filter.key}
-              className={`filter-button ${isActive ? 'active' : ''}`}
+              variant={isActive ? "default" : "outline"}
+              size="sm"
+              className="h-7 text-xs"
               onClick={() => onFilterToggle(filter.key)}
             >
-              <span className="filter-icon">{getFilterIcon(filter.key)}</span>
-              <span>{filter.title}</span>
-            </button>
+              {Icon && <Icon className="h-3 w-3 mr-1.5" />}
+              {filter.title}
+            </Button>
           )
         })}
       </div>
     </div>
   )
 }
-

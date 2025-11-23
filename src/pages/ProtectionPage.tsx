@@ -10,7 +10,11 @@ import {
   ProtectionBehavior 
 } from '../services/api'
 import { useApp } from '../context/AppContext'
-import './ProtectionPage.css'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { ArrowLeft, Unlock, Loader2, ChevronDown, ChevronRight, Check, AlertCircle, Shield } from 'lucide-react'
 
 export default function ProtectionPage() {
   const navigate = useNavigate()
@@ -29,7 +33,6 @@ export default function ProtectionPage() {
   const timeTrackingRef = useRef<Record<string, { startTime: number; isSelected: boolean }>>({})
   const [isProceeding, setIsProceeding] = useState(false)
 
-  // Get booking ID from context or localStorage
   const getBookingId = () => {
     if (bookingDetails?.id) {
       return bookingDetails.id
@@ -41,7 +44,6 @@ export default function ProtectionPage() {
     return null
   }
 
-  // Get user ID from context or localStorage
   const getUserId = () => {
     if (user?.id) {
       return user.id
@@ -63,7 +65,6 @@ export default function ProtectionPage() {
           const data = await getProtectionPackages(bookingId)
           setPackages(data.protectionPackages)
           
-          // Set initially selected package
           const initiallySelected = data.protectionPackages.find(pkg => pkg.isSelected)
           if (initiallySelected) {
             setSelectedPackageId(initiallySelected.id)
@@ -82,7 +83,6 @@ export default function ProtectionPage() {
   }, [bookingDetails])
 
   useEffect(() => {
-    // Initialize behavior tracking for each package
     if (packages.length > 0 && behaviors.length === 0) {
       const initialBehaviors = packages.map(pkg => ({
         protectionPackageId: pkg.id,
@@ -96,7 +96,6 @@ export default function ProtectionPage() {
       }))
       setBehaviors(initialBehaviors)
       
-      // Initialize expanded states
       const initialExpanded: Record<string, any> = {}
       packages.forEach(pkg => {
         initialExpanded[pkg.id] = {
@@ -111,19 +110,16 @@ export default function ProtectionPage() {
   }, [packages])
 
   useEffect(() => {
-    // Track time when package is selected
     packages.forEach(pkg => {
       const isSelected = selectedPackageId === pkg.id
       const tracking = timeTrackingRef.current[pkg.id]
       
       if (isSelected && !tracking?.isSelected) {
-        // Package just got selected
         timeTrackingRef.current[pkg.id] = {
           startTime: Date.now(),
           isSelected: true,
         }
       } else if (!isSelected && tracking?.isSelected) {
-        // Package just got unselected
         const timeSpent = Date.now() - tracking.startTime
         updateBehavior(pkg.id, 'timeSpendSelected', timeSpent)
         timeTrackingRef.current[pkg.id] = {
@@ -133,7 +129,6 @@ export default function ProtectionPage() {
       }
     })
 
-    // Cleanup on unmount - save any remaining time
     return () => {
       Object.keys(timeTrackingRef.current).forEach(pkgId => {
         const tracking = timeTrackingRef.current[pkgId]
@@ -209,11 +204,9 @@ export default function ProtectionPage() {
     const previousSelected = selectedPackageId
     
     if (previousSelected === packageId) {
-      // Unselecting
       updateBehavior(packageId, 'Unselected', 1)
       setSelectedPackageId(null)
     } else {
-      // Selecting new package
       if (previousSelected) {
         updateBehavior(previousSelected, 'Unselected', 1)
       }
@@ -232,7 +225,6 @@ export default function ProtectionPage() {
   }
 
   const handleBack = async () => {
-    // Save time for currently selected package before leaving
     if (selectedPackageId) {
       const tracking = timeTrackingRef.current[selectedPackageId]
       if (tracking?.isSelected) {
@@ -241,14 +233,11 @@ export default function ProtectionPage() {
       }
     }
 
-    // Wait a bit for state to update
     await new Promise(resolve => setTimeout(resolve, 100))
 
-    // Get booking ID and user ID from context or localStorage
     const bookingId = getBookingId()
     const userId = getUserId()
 
-    // Send tracking data for all packages
     if (behaviors.length > 0 && bookingId && userId) {
       try {
         const trackingPromises = behaviors.map(behavior => 
@@ -270,10 +259,7 @@ export default function ProtectionPage() {
         console.log('All protection plan tracking data sent successfully')
       } catch (err: any) {
         console.error('Error sending tracking data:', err)
-        // Still navigate even if tracking fails
       }
-    } else {
-      console.warn('Missing booking ID or user ID. Booking ID:', bookingId, 'User ID:', userId)
     }
     
     navigate('/vehicles')
@@ -296,8 +282,6 @@ export default function ProtectionPage() {
     try {
       setIsProceeding(true)
 
-      // 0. Finalize time tracking and send behavior data
-      // Save time for currently selected package before leaving
       if (selectedPackageId) {
         const tracking = timeTrackingRef.current[selectedPackageId]
         if (tracking?.isSelected) {
@@ -306,10 +290,8 @@ export default function ProtectionPage() {
         }
       }
 
-      // Wait a bit for state to update
       await new Promise(resolve => setTimeout(resolve, 100))
 
-      // Send tracking data for all packages
       if (behaviors.length > 0) {
         try {
           const trackingPromises = behaviors.map(behavior => 
@@ -331,49 +313,32 @@ export default function ProtectionPage() {
           console.log('All protection plan tracking data sent successfully before proceeding')
         } catch (err: any) {
           console.error('Error sending tracking data:', err)
-          // Continue even if tracking fails
         }
       }
 
-      // 1. Assign protection package
-      console.log('Assigning protection package:', selectedPackageId)
       await assignProtectionPackage(bookingId, selectedPackageId)
-
-      // 2. Fetch vehicles from booking
-      console.log('Fetching vehicles for booking:', bookingId)
       const vehiclesResponse = await getAvailableVehicles(bookingId)
 
-      // 3. Filter deals to only DISCOUNT and take top 2
       const discountDeals = vehiclesResponse.deals
         .filter((deal: any) => deal.dealInfo === 'DISCOUNT')
         .sort((a: any, b: any) => b.pricing.discountPercentage - a.pricing.discountPercentage)
         .slice(0, 2)
 
-      console.log('Filtered discount deals (top 2):', discountDeals)
-
-      // 4. Call agentic selector API (if deals available)
       if (discountDeals.length > 0) {
-        console.log('Calling agentic selector with UserId:', userId, 'and deals:', discountDeals)
         const agenticResponse = await callAgenticSelector({
           UserId: userId,
           deals: discountDeals,
         })
 
-        // Save task_id to localStorage
         if (agenticResponse.task_id) {
           localStorage.setItem('agenticTaskId', agenticResponse.task_id)
-          console.log('Saved task_id to localStorage:', agenticResponse.task_id)
         }
-      } else {
-        console.log('No discount deals available, skipping agentic selector')
       }
 
-      // 5. Navigate to personalized deals page (at every cost)
       navigate('/personalized-deals')
     } catch (err: any) {
       console.error('Error proceeding to unlock:', err)
       alert(`Failed to proceed: ${err.message}`)
-      // Navigate to personalized deals page even on error (at every cost)
       navigate('/personalized-deals')
     } finally {
       setIsProceeding(false)
@@ -382,41 +347,61 @@ export default function ProtectionPage() {
 
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="spinner"></div>
-        <p>Loading protection packages...</p>
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+            <p className="text-sm text-muted-foreground">Loading protection packages...</p>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="error-container">
-        <h2>Error</h2>
-        <p>{error}</p>
-        <button onClick={() => navigate('/vehicles')} className="retry-button">
-          Go Back
-        </button>
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex flex-col items-center justify-center py-12 space-y-4">
+            <AlertCircle className="h-12 w-12 text-destructive" />
+            <h2 className="text-lg font-semibold">Error</h2>
+            <p className="text-sm text-muted-foreground text-center">{error}</p>
+            <Button variant="outline" size="sm" onClick={() => navigate('/vehicles')}>
+              Go Back
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   return (
-    <div className="protection-page">
-      <header className="protection-header">
-        <div className="header-content">
-          <button className="back-button" onClick={handleBack}>
-            ← Back
-          </button>
-          <div className="header-text">
-            <h1>Choose Your Protection</h1>
-            <p className="subtitle">Select the protection package that suits your needs</p>
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10">
+      <div className="bg-gradient-to-r from-primary to-secondary text-primary-foreground">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-primary-foreground hover:bg-primary-foreground/20"
+              onClick={handleBack}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+            <div className="flex-1 text-center">
+              <h1 className="text-xl font-bold flex items-center justify-center gap-2">
+                <Shield className="h-5 w-5" />
+                Choose Your Protection
+              </h1>
+              <p className="text-xs opacity-90 mt-1">Select the protection package that suits your needs</p>
+            </div>
           </div>
         </div>
-      </header>
+      </div>
 
-      <main className="protection-main">
-        <div className="protection-packages-grid">
+      <div className="container mx-auto px-4 py-6 max-w-6xl">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {packages.map(pkg => {
             const isSelected = selectedPackageId === pkg.id
             const expanded = expandedStates[pkg.id] || {
@@ -427,168 +412,194 @@ export default function ProtectionPage() {
             }
 
             return (
-              <div
+              <Card
                 key={pkg.id}
-                className={`protection-card ${isSelected ? 'selected' : ''}`}
+                className={`cursor-pointer transition-all hover:shadow-lg ${
+                  isSelected ? 'border-2 border-primary shadow-lg' : ''
+                }`}
                 onClick={() => handleSelectPackage(pkg.id)}
               >
-                <div className="card-header">
-                  <div className="card-title-section">
-                    <h3>{pkg.name}</h3>
-                    {pkg.ratingStars > 0 && (
-                      <div className="rating-stars">
-                        {'⭐'.repeat(pkg.ratingStars)}
-                      </div>
-                    )}
-                  </div>
-                  <div className="card-selection-indicator">
-                    {isSelected ? '✓ Selected' : '○'}
-                  </div>
-                </div>
-
-                {pkg.description && (
-                  <div className="card-description-section">
-                    <button
-                      className="expand-button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleToggleDescription(pkg.id)
-                      }}
-                    >
-                      {expanded.description ? '▼' : '▶'} Description
-                    </button>
-                    {expanded.description && (
-                      <p className="description-text">{pkg.description}</p>
-                    )}
-                  </div>
-                )}
-
-                <div className="card-price-section">
-                  <div className="price-main">
-                    <span className="price-amount">
-                      {formatPrice(pkg.price.displayPrice.amount, pkg.price.displayPrice.currency)}
-                    </span>
-                    <span className="price-suffix">{pkg.price.displayPrice.suffix}</span>
-                    {pkg.price.discountPercentage > 0 && (
-                      <span className="discount-badge">{pkg.price.discountPercentage}% OFF</span>
-                    )}
-                  </div>
-                  <button
-                    className="expand-button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleTogglePrice(pkg.id)
-                    }}
-                  >
-                    {expanded.price ? '▼' : '▶'} Price Breakdown
-                  </button>
-                  {expanded.price && (
-                    <div className="price-breakdown">
-                      {pkg.price.listPrice && (
-                        <div className="breakdown-item">
-                          <span>List Price:</span>
-                          <span className="original-price">
-                            {formatPrice(pkg.price.listPrice.amount, pkg.price.listPrice.currency)}
-                            {pkg.price.listPrice.suffix}
-                          </span>
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-base mb-1">{pkg.name}</CardTitle>
+                      {pkg.ratingStars > 0 && (
+                        <div className="text-xs">
+                          {'⭐'.repeat(pkg.ratingStars)}
                         </div>
                       )}
-                      <div className="breakdown-item">
-                        <span>Display Price:</span>
-                        <span>
-                          {formatPrice(pkg.price.displayPrice.amount, pkg.price.displayPrice.currency)}
-                          {pkg.price.displayPrice.suffix}
-                        </span>
-                      </div>
-                      <div className="breakdown-item">
-                        <span>Total Price:</span>
-                        <span>
-                          {formatPrice(pkg.price.totalPrice.amount, pkg.price.totalPrice.currency)}
-                          {pkg.price.totalPrice.suffix}
-                        </span>
-                      </div>
+                    </div>
+                    {isSelected && (
+                      <Badge variant="default" className="text-xs">
+                        <Check className="h-3 w-3 mr-1" />
+                        Selected
+                      </Badge>
+                    )}
+                  </div>
+                </CardHeader>
+
+                <CardContent className="space-y-3">
+                  {pkg.description && (
+                    <div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs w-full justify-between p-0"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleToggleDescription(pkg.id)
+                        }}
+                      >
+                        <span>Description</span>
+                        {expanded.description ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                      </Button>
+                      {expanded.description && (
+                        <p className="text-xs text-muted-foreground mt-1 p-2 bg-muted rounded-md">{pkg.description}</p>
+                      )}
                     </div>
                   )}
-                </div>
 
-                {pkg.includes.length > 0 && (
-                  <div className="card-includes-section">
-                    <button
-                      className="expand-button"
+                  <div className="p-3 bg-muted rounded-md">
+                    <div className="flex items-baseline gap-2 flex-wrap mb-2">
+                      <span className="text-lg font-bold text-primary">
+                        {formatPrice(pkg.price.displayPrice.amount, pkg.price.displayPrice.currency)}
+                      </span>
+                      <span className="text-xs text-muted-foreground">{pkg.price.displayPrice.suffix}</span>
+                      {pkg.price.discountPercentage > 0 && (
+                        <Badge variant="destructive" className="text-xs">
+                          {pkg.price.discountPercentage}% OFF
+                        </Badge>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs w-full justify-between p-0"
                       onClick={(e) => {
                         e.stopPropagation()
-                        handleToggleIncludes(pkg.id)
+                        handleTogglePrice(pkg.id)
                       }}
                     >
-                      {expanded.includes ? '▼' : '▶'} Includes ({pkg.includes.length})
-                    </button>
-                    {expanded.includes && (
-                      <div className="includes-list">
-                        {pkg.includes.map((include, idx) => (
-                          <div key={idx} className="include-item">
-                            <h4>{include.title}</h4>
-                            <p>{include.description}</p>
+                      <span>Price Breakdown</span>
+                      {expanded.price ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                    </Button>
+                    {expanded.price && (
+                      <div className="mt-2 space-y-1 text-xs">
+                        {pkg.price.listPrice && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">List Price:</span>
+                            <span className="line-through">
+                              {formatPrice(pkg.price.listPrice.amount, pkg.price.listPrice.currency)}
+                              {pkg.price.listPrice.suffix}
+                            </span>
                           </div>
-                        ))}
+                        )}
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Display Price:</span>
+                          <span>
+                            {formatPrice(pkg.price.displayPrice.amount, pkg.price.displayPrice.currency)}
+                            {pkg.price.displayPrice.suffix}
+                          </span>
+                        </div>
+                        <div className="flex justify-between font-semibold">
+                          <span>Total Price:</span>
+                          <span>
+                            {formatPrice(pkg.price.totalPrice.amount, pkg.price.totalPrice.currency)}
+                            {pkg.price.totalPrice.suffix}
+                          </span>
+                        </div>
                       </div>
                     )}
                   </div>
-                )}
 
-                {pkg.excludes.length > 0 && (
-                  <div className="card-excludes-section">
-                    <button
-                      className="expand-button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleToggleExcludes(pkg.id)
-                      }}
-                    >
-                      {expanded.excludes ? '▼' : '▶'} Excludes ({pkg.excludes.length})
-                    </button>
-                    {expanded.excludes && (
-                      <div className="excludes-list">
-                        {pkg.excludes.map((exclude, idx) => (
-                          <div key={idx} className="exclude-item">
-                            <h4>{exclude.title}</h4>
-                            <p>{exclude.description}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
+                  {pkg.includes.length > 0 && (
+                    <div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs w-full justify-between p-0"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleToggleIncludes(pkg.id)
+                        }}
+                      >
+                        <span>Includes ({pkg.includes.length})</span>
+                        {expanded.includes ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                      </Button>
+                      {expanded.includes && (
+                        <div className="mt-2 space-y-2">
+                          {pkg.includes.map((include, idx) => (
+                            <div key={idx} className="p-2 bg-green-50 dark:bg-green-950 border-l-4 border-green-500 rounded-r-md">
+                              <p className="text-xs font-semibold text-green-900 dark:text-green-100">{include.title}</p>
+                              <p className="text-xs text-green-700 dark:text-green-300 mt-1">{include.description}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-                <div className="card-footer">
-                  <div className="deductible-info">
-                    Deductible: {formatPrice(pkg.deductibleAmount.value, pkg.deductibleAmount.currency)}
+                  {pkg.excludes.length > 0 && (
+                    <div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs w-full justify-between p-0"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleToggleExcludes(pkg.id)
+                        }}
+                      >
+                        <span>Excludes ({pkg.excludes.length})</span>
+                        {expanded.excludes ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                      </Button>
+                      {expanded.excludes && (
+                        <div className="mt-2 space-y-2">
+                          {pkg.excludes.map((exclude, idx) => (
+                            <div key={idx} className="p-2 bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-r-md">
+                              <p className="text-xs font-semibold text-red-900 dark:text-red-100">{exclude.title}</p>
+                              <p className="text-xs text-red-700 dark:text-red-300 mt-1">{exclude.description}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <Separator />
+
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground">
+                      Deductible: {formatPrice(pkg.deductibleAmount.value, pkg.deductibleAmount.currency)}
+                    </p>
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             )
           })}
         </div>
 
-        <div className="proceed-section">
-          <button
-            className="proceed-button"
+        <div className="mt-6 flex justify-center">
+          <Button
+            size="lg"
+            className="h-10 gap-2"
             onClick={handleProceedToUnlock}
             disabled={isProceeding || !selectedPackageId}
           >
             {isProceeding ? (
               <>
-                <span className="button-spinner"></span>
+                <Loader2 className="h-4 w-4 animate-spin" />
                 Processing...
               </>
             ) : (
               <>
-                🔓 Proceed to Unlock
+                <Unlock className="h-4 w-4" />
+                Proceed to Unlock
               </>
             )}
-          </button>
+          </Button>
         </div>
-      </main>
+      </div>
     </div>
   )
 }
-

@@ -1,11 +1,14 @@
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import CurrentBookingSection from '../components/CurrentBookingSection'
-import UpsellVehiclesSection from '../components/UpsellVehiclesSection'
 import QuickFilters from '../components/QuickFilters'
 import VehicleCard from '../components/VehicleCard'
 import DiscountVehicleCard from '../components/DiscountVehicleCard'
-import '../App.css'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Unlock, Shield } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
+import { Deal } from '../services/api'
 
 export default function VehiclesPage() {
   const navigate = useNavigate()
@@ -13,9 +16,11 @@ export default function VehiclesPage() {
 
   if (!vehiclesData) {
     return (
-      <div className="loading-container">
-        <div className="spinner"></div>
-        <p>Loading vehicles...</p>
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 flex items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Loading vehicles...</p>
+        </div>
       </div>
     )
   }
@@ -28,10 +33,8 @@ export default function VehiclesPage() {
     (deal: any) => deal.dealInfo === 'DISCOUNT'
   )
 
-  // Get only the first booked vehicle
   const bookedVehicle = bookedVehicles.length > 0 ? bookedVehicles[0] : null
 
-  // Find the highest discount vehicle
   const highestDiscountVehicle = upsellVehicles.length > 0
     ? upsellVehicles.reduce((highest, current) => {
         return current.pricing.discountPercentage > highest.pricing.discountPercentage
@@ -39,6 +42,58 @@ export default function VehiclesPage() {
           : highest
       }, upsellVehicles[0])
     : null
+
+  // Get other vehicles (excluding the highest discount one that's shown in comparison)
+  const otherVehicles = useMemo(() => {
+    let filtered = upsellVehicles.filter((deal: Deal) => {
+      // Exclude the highest discount vehicle if it exists
+      if (highestDiscountVehicle && deal.vehicle.id === highestDiscountVehicle.vehicle.id) {
+        return false
+      }
+      return true
+    })
+
+    // Apply quick filters
+    if (activeFilters.size > 0) {
+      filtered = filtered.filter((deal: Deal) => {
+        const vehicle = deal.vehicle
+        
+        if (activeFilters.has('MCI_P100_QUICKFILTER_RECOMMENDED') && !vehicle.isRecommended) {
+          return false
+        }
+        if (activeFilters.has('MCI_P100_QUICKFILTER_EXCITING_DISCOUNTS') && !vehicle.isExcitingDiscount) {
+          return false
+        }
+        if (activeFilters.has('MCI_P100_QUICKFILTER_NEW_CAR') && !vehicle.isNewCar) {
+          return false
+        }
+        if (activeFilters.has('MCI_P100_QUICKFILTER_ELECTRIC_VEHICLES') && 
+            vehicle.fuelType !== 'Electric' && vehicle.fuelType !== 'Hybrid') {
+          return false
+        }
+        
+        return true
+      })
+    }
+
+    // Smart sorting: isRecommended first, then highest discount, then lowest total price
+    filtered.sort((a: Deal, b: Deal) => {
+      // First: isRecommended (true comes first)
+      if (a.vehicle.isRecommended !== b.vehicle.isRecommended) {
+        return a.vehicle.isRecommended ? -1 : 1
+      }
+      
+      // Second: Highest discountPercentage
+      if (a.pricing.discountPercentage !== b.pricing.discountPercentage) {
+        return b.pricing.discountPercentage - a.pricing.discountPercentage
+      }
+      
+      // Third: Lowest totalPrice
+      return a.pricing.totalPrice.amount - b.pricing.totalPrice.amount
+    })
+
+    return filtered
+  }, [upsellVehicles, highestDiscountVehicle, activeFilters])
 
   const handleFilterToggle = (filterKey: string) => {
     setActiveFilters(prev => {
@@ -53,20 +108,24 @@ export default function VehiclesPage() {
   }
 
   return (
-    <div className="app">
-      <header className="app-header">
-        <h1>{user?.name ? `${user.name}'s Vehicle Selection` : 'Choose Your Vehicle'}</h1>
-        <p className="subtitle">Upgrade to a better experience</p>
-      </header>
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10">
+      <div className="bg-gradient-to-r from-primary to-secondary text-primary-foreground">
+        <div className="container mx-auto px-4 py-4">
+          <h1 className="text-xl font-bold">{user?.name ? `${user.name}'s Vehicle Selection` : 'Choose Your Vehicle'}</h1>
+          <p className="text-xs opacity-90 mt-1">Upgrade to a better experience</p>
+        </div>
+      </div>
 
-      <main className="app-main">
-        <div className="unlock-section">
-          <button 
-            className="unlock-button"
+      <div className="container mx-auto px-4 py-6 space-y-6">
+        <div className="flex justify-center">
+          <Button 
+            size="lg"
+            className="h-10 gap-2"
             onClick={() => navigate('/protection')}
           >
-            🔓 Unlock Your Car
-          </button>
+            <Unlock className="h-4 w-4" />
+            Unlock Your Car
+          </Button>
         </div>
 
         {vehiclesData.quickFilters && (
@@ -78,17 +137,17 @@ export default function VehiclesPage() {
         )}
 
         {bookedVehicle && highestDiscountVehicle && (
-          <section className="comparison-section">
-            <div className="section-header">
-              <h2>Compare Your Options</h2>
-              <p className="section-subtitle">Your current booking vs. best discount offer</p>
+          <section className="space-y-4">
+            <div className="text-center space-y-1">
+              <h2 className="text-lg font-bold">Compare Your Options</h2>
+              <p className="text-xs text-muted-foreground">Your current booking vs. best discount offer</p>
             </div>
-            <div className="comparison-grid">
-              <div className="comparison-card booked">
-                <div className="comparison-label">
-                  <span className="label-badge">Your Current Booking</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Badge variant="default" className="text-xs">Your Current Booking</Badge>
                   {bookingDetails?.bookedCategory && (
-                    <span className="category-badge">Category: {bookingDetails.bookedCategory}</span>
+                    <Badge variant="outline" className="text-xs">Category: {bookingDetails.bookedCategory}</Badge>
                   )}
                 </div>
                 <VehicleCard
@@ -98,12 +157,12 @@ export default function VehiclesPage() {
                 />
               </div>
               
-              <div className="comparison-card discount">
-                <div className="comparison-label">
-                  <span className="label-badge discount-badge">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Badge variant="destructive" className="text-xs">
                     Best Discount - {highestDiscountVehicle.pricing.discountPercentage}% OFF
-                  </span>
-                  <span className="deal-info-badge">DISCOUNT</span>
+                  </Badge>
+                  <Badge variant="secondary" className="text-xs">DISCOUNT</Badge>
                 </div>
                 <DiscountVehicleCard
                   deal={highestDiscountVehicle}
@@ -116,29 +175,53 @@ export default function VehiclesPage() {
         )}
 
         {bookedVehicle && !highestDiscountVehicle && (
-          <CurrentBookingSection
-            vehicles={[bookedVehicle]}
-            bookedCategory={bookingDetails?.bookedCategory}
-          />
+          <div className="space-y-2">
+            <Badge variant="default" className="text-xs">Your Current Booking</Badge>
+            <VehicleCard
+              deal={bookedVehicle}
+              isLocked={true}
+              showUpgradeButton={false}
+            />
+          </div>
         )}
 
-        {upsellVehicles.length > 0 && (
-          <UpsellVehiclesSection
-            vehicles={upsellVehicles}
-            activeFilters={activeFilters}
-          />
+        {otherVehicles.length > 0 && (
+          <section className="space-y-4">
+            <div className="text-center space-y-1">
+              <h2 className="text-lg font-bold">More Upgrade Options</h2>
+              <p className="text-xs text-muted-foreground">Discover better vehicles at great prices</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {otherVehicles.map((deal: Deal) => (
+                <VehicleCard
+                  key={deal.vehicle.id}
+                  deal={deal}
+                  isLocked={false}
+                  showUpgradeButton={true}
+                />
+              ))}
+            </div>
+          </section>
         )}
 
-        <div className="protection-cta-section">
-          <button 
-            className="add-protection-button"
+        {otherVehicles.length === 0 && upsellVehicles.length > 0 && (
+          <div className="text-center py-8">
+            <p className="text-sm text-muted-foreground">No other vehicles match your selected filters.</p>
+          </div>
+        )}
+
+        <div className="flex justify-center">
+          <Button 
+            variant="outline"
+            size="lg"
+            className="h-10 gap-2"
             onClick={() => navigate('/protection')}
           >
+            <Shield className="h-4 w-4" />
             Add Protection
-          </button>
+          </Button>
         </div>
-      </main>
+      </div>
     </div>
   )
 }
-

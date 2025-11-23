@@ -1,5 +1,7 @@
 import { useNavigate } from 'react-router-dom'
-import '../components/LandingPage.css'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ArrowRight } from 'lucide-react'
 
 export default function LandingPage() {
   const navigate = useNavigate()
@@ -9,37 +11,56 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="landing-page">
-      <div className="landing-content">
-        <div className="landing-header">
-          <h1 className="landing-title">Welcome to Sixt</h1>
-          <p className="landing-subtitle">Your premium car rental experience starts here</p>
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 flex items-center justify-center p-4">
+      <div className="max-w-4xl w-full space-y-8">
+        <div className="text-center space-y-3">
+          <h1 className="text-4xl font-bold tracking-tight">Welcome to Sixt</h1>
+          <p className="text-muted-foreground text-sm">Your premium car rental experience starts here</p>
         </div>
 
-        <div className="landing-features">
-          <div className="feature-card">
-            <div className="feature-icon">🚗</div>
-            <h3>Premium Vehicles</h3>
-            <p>Choose from our wide selection of luxury and premium cars</p>
-          </div>
-          <div className="feature-card">
-            <div className="feature-icon">⚡</div>
-            <h3>Best Deals</h3>
-            <p>Exclusive discounts and offers tailored just for you</p>
-          </div>
-          <div className="feature-card">
-            <div className="feature-icon">✨</div>
-            <h3>Personalized Experience</h3>
-            <p>Get recommendations based on your preferences</p>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="text-3xl mb-2">🚗</div>
+              <CardTitle className="text-base">Premium Vehicles</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription className="text-xs">
+                Choose from our wide selection of luxury and premium cars
+              </CardDescription>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="text-3xl mb-2">⚡</div>
+              <CardTitle className="text-base">Best Deals</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription className="text-xs">
+                Exclusive discounts and offers tailored just for you
+              </CardDescription>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="text-3xl mb-2">✨</div>
+              <CardTitle className="text-base">Personalized Experience</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription className="text-xs">
+                Get recommendations based on your preferences
+              </CardDescription>
+            </CardContent>
+          </Card>
         </div>
 
-        <button className="get-started-button" onClick={handleGetStarted}>
-          Get Started
-          <span className="button-arrow">→</span>
-        </button>
+        <div className="flex justify-center">
+          <Button size="lg" onClick={handleGetStarted} className="gap-2">
+            Get Started
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   )
 }
-
