@@ -1,16 +1,20 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Deal } from '../services/api'
+import { Deal, upgradeVehicle } from '../services/api'
+import { useApp } from '../context/AppContext'
 import './VehicleCard.css'
 
-interface VehicleCardProps {
+interface DiscountVehicleCardProps {
   deal: Deal
   isLocked: boolean
   showUpgradeButton: boolean
 }
 
-export default function VehicleCard({ deal, isLocked, showUpgradeButton }: VehicleCardProps) {
+export default function DiscountVehicleCard({ deal, isLocked, showUpgradeButton }: DiscountVehicleCardProps) {
   const navigate = useNavigate()
+  const { bookingDetails } = useApp()
   const { vehicle, pricing } = deal
+  const [isUpgrading, setIsUpgrading] = useState(false)
 
   const getBadges = () => {
     const badges = []
@@ -18,7 +22,6 @@ export default function VehicleCard({ deal, isLocked, showUpgradeButton }: Vehic
     if (vehicle.isExcitingDiscount) badges.push({ text: 'Exciting Discount', icon: '⚡', className: 'discount' })
     if (vehicle.fuelType === 'Electric') badges.push({ text: 'Electric', icon: '🔋', className: 'electric' })
     if (vehicle.fuelType === 'Hybrid') badges.push({ text: 'Hybrid', icon: '🔋', className: 'hybrid' })
-    if (isLocked) badges.push({ text: 'Your Current Booking', icon: '🔒', className: 'current' })
     return badges
   }
 
@@ -31,9 +34,40 @@ export default function VehicleCard({ deal, isLocked, showUpgradeButton }: Vehic
     }).format(amount)
   }
 
-  const handleUpgrade = () => {
-    if (!isLocked) {
-      navigate('/protection')
+  // Calculate hourly price
+  const hourlyPrice = pricing.displayPrice.amount / 24
+  const priceMessage = hourlyPrice < 2 ? 'Less than a coffee ☕' : 'Less than a burger 🍔'
+
+  const handleUpgrade = async () => {
+    if (!isLocked && bookingDetails?.id) {
+      try {
+        setIsUpgrading(true)
+        await upgradeVehicle(bookingDetails.id, vehicle.id)
+        // After successful upgrade, navigate to protection page
+        navigate('/protection')
+      } catch (err: any) {
+        console.error('Error upgrading vehicle:', err)
+        alert(`Failed to upgrade vehicle: ${err.message}`)
+      } finally {
+        setIsUpgrading(false)
+      }
+    } else if (!bookingDetails?.id) {
+      // Try to get booking ID from localStorage
+      const bookingId = localStorage.getItem('bookingId')
+      if (bookingId) {
+        try {
+          setIsUpgrading(true)
+          await upgradeVehicle(bookingId, vehicle.id)
+          navigate('/protection')
+        } catch (err: any) {
+          console.error('Error upgrading vehicle:', err)
+          alert(`Failed to upgrade vehicle: ${err.message}`)
+        } finally {
+          setIsUpgrading(false)
+        }
+      } else {
+        alert('No booking found. Please create a booking first.')
+      }
     }
   }
 
@@ -116,11 +150,13 @@ export default function VehicleCard({ deal, isLocked, showUpgradeButton }: Vehic
           )}
           <div className="current-price">
             <span className="price-label">Price:</span>
-            <span className="price-amount">
-              {pricing.displayPrice.prefix}
-              {formatPrice(pricing.displayPrice.amount, pricing.displayPrice.currency)}
-              {pricing.displayPrice.suffix}
+            <span className="price-amount hourly-price">
+              {formatPrice(hourlyPrice, pricing.displayPrice.currency)}
+              <span className="price-unit">/hour</span>
             </span>
+          </div>
+          <div className="price-message">
+            {priceMessage}
           </div>
           <div className="total-price">
             {pricing.totalPrice.prefix}
@@ -133,10 +169,18 @@ export default function VehicleCard({ deal, isLocked, showUpgradeButton }: Vehic
           <button 
             className="upgrade-button"
             onClick={handleUpgrade}
+            disabled={isUpgrading}
           >
-            Upgrade for {pricing.displayPrice.prefix}
-            {formatPrice(pricing.displayPrice.amount, pricing.displayPrice.currency)}
-            {pricing.displayPrice.suffix}
+            {isUpgrading ? (
+              <>
+                <span className="button-spinner"></span>
+                Upgrading...
+              </>
+            ) : (
+              <>
+                Upgrade for {formatPrice(hourlyPrice, pricing.displayPrice.currency)}/hour
+              </>
+            )}
           </button>
         )}
       </div>

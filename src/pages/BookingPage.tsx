@@ -1,21 +1,36 @@
 import { useState } from 'react'
-import './BookingScreen.css'
+import { useNavigate } from 'react-router-dom'
+import { createBooking, getBookingDetails, getAvailableVehicles } from '../services/api'
+import { useApp } from '../context/AppContext'
+import '../components/BookingScreen.css'
 
-interface BookingScreenProps {
-  onCreateBooking: () => Promise<void>
-  isLoading: boolean
-  userName?: string
-}
-
-export default function BookingScreen({ onCreateBooking, isLoading, userName }: BookingScreenProps) {
+export default function BookingPage() {
+  const navigate = useNavigate()
+  const { user, setBookingDetails, setVehiclesData } = useApp()
   const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleCreateBooking = async () => {
     try {
+      setIsLoading(true)
       setError(null)
-      await onCreateBooking()
+      
+      const booking = await createBooking()
+      const details = await getBookingDetails(booking.id)
+      setBookingDetails(details)
+      
+      // Save booking ID to localStorage
+      localStorage.setItem('bookingId', booking.id)
+      localStorage.setItem('bookingDetails', JSON.stringify(details))
+      
+      const vehicles = await getAvailableVehicles(booking.id)
+      setVehiclesData(vehicles)
+      
+      navigate('/vehicles')
     } catch (err: any) {
       setError(err.message || 'Failed to create booking')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -23,7 +38,7 @@ export default function BookingScreen({ onCreateBooking, isLoading, userName }: 
     <div className="booking-screen">
       <div className="booking-container">
         <div className="booking-header">
-          <h1>{userName ? `Welcome, ${userName}!` : 'Welcome to Sixt'}</h1>
+          <h1>{user?.name ? `Welcome, ${user.name}!` : 'Welcome to Sixt'}</h1>
           <p className="subtitle">Let's get your booking started</p>
         </div>
 
